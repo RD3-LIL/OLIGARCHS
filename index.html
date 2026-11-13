@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="color-scheme" content="dark"/>
+<link rel="icon" href="data:,"/>
+<title>Tech Oligarchs</title>
+<style>
+:root{
+  --bg:#0a0f1a; --panel:#111827; --panel2:#1a2336; --line:#2a3653; --ink:#e8eefc; --muted:#94a3c4;
+  --data:#38bdf8; --power:#facc15; --capital:#4ade80; --chips:#c084fc;
+  --player:#22d3ee; --enemy:#fb7185; --accent:#22c55e; --gold:#f59e0b; --radius:14px;
+}
+*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-rounded,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
+button{min-height:40px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:10px;padding:8px 10px;font-weight:700;cursor:pointer;font-size:13px;line-height:1.2}
+button:hover{border-color:var(--player)} button:disabled{opacity:.38;cursor:not-allowed} button.primary{background:#0e7490;border-color:#22d3ee} button.gold{background:#92400e;border-color:var(--gold)} button.danger{background:#7f1d2f;border-color:#fb7185} button.active{outline:2px solid var(--player)}
+button small{display:block;font-weight:600;color:#cbd5e1;font-size:11px;margin-top:2px}
+.topbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;background:#0d1526;border-bottom:2px solid var(--line);position:sticky;top:0;z-index:5}
+.brand{font-weight:900;letter-spacing:.02em;font-size:20px} .brand span{color:var(--player)} .brand em{font-style:normal;color:var(--gold)}
+.res{display:flex;flex-wrap:wrap;gap:6px}
+.pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-weight:800;font-size:13px;white-space:nowrap}
+.pill b{font-size:14px} .pill .lab{color:var(--muted);font-weight:700}
+.agepill{background:#312e0b;border-color:#854d0e}
+.layout{display:grid;grid-template-columns:1fr 322px;gap:10px;padding:10px;max-width:1500px;margin:0 auto;align-items:start}
+.stage{background:#060a13;border:2px solid var(--line);border-radius:16px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;aspect-ratio:3/2;background:#0b1a12;touch-action:manipulation;cursor:crosshair}
+.belowmap{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--panel);border-top:1px solid var(--line);align-items:center}
+.belowmap .hint{font-size:12px;color:var(--muted);flex:1;min-width:180px;line-height:1.35}
+.side{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px}
+.card h2{margin:0 0 6px;font-size:15px} .card h3{margin:8px 0 5px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.card p{margin:4px 0;font-size:13px;line-height:1.45;color:#dbe4f5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.grid1{display:grid;grid-template-columns:1fr;gap:6px}
+.hpbar{height:10px;background:#020617;border-radius:99px;overflow:hidden;border:1px solid var(--line)} .hpbar i{display:block;height:100%;background:var(--accent)}
+.log{height:132px;overflow:auto;font-size:12px;line-height:1.5} .log div{padding:3px 0;border-bottom:1px dashed #26314d}
+.queue{font-size:12px;color:var(--muted)}
+.kbd{background:#020617;border:1px solid var(--line);border-radius:5px;padding:0 5px}
+.overlay{position:fixed;inset:0;background:rgba(2,6,23,.88);display:flex;align-items:center;justify-content:center;z-index:20;padding:14px}
+.sheet{background:#0f172a;border:2px solid #334155;border-radius:20px;max-width:720px;width:100%;max-height:92vh;overflow:auto;padding:20px;box-shadow:0 20px 60px #000}
+.sheet h1{margin:0;font-size:34px;line-height:1} .sheet h1 span{color:var(--player)} .sheet h1 em{font-style:normal;color:var(--gold)}
+.sheet .sub{color:var(--muted);line-height:1.5}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px} .cols ul{margin:6px 0;padding-left:18px;line-height:1.5;font-size:13px}
+.hidden{display:none!important}
+.ages{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.agechip{font-size:11px;font-weight:800;padding:5px 7px;border-radius:999px;background:#1e293b;border:1px solid var(--line)} .agechip.on{background:#0e7490;border-color:var(--player)} .agechip.enemyOn{background:#7f1d2f;border-color:#fb7185}
+.legend{display:flex;flex-wrap:wrap;gap:5px}
+@media(max-width:900px){.layout{grid-template-columns:1fr;padding:6px}.side{order:2}.cols{grid-template-columns:1fr}.brand{font-size:17px}.sheet h1{font-size:27px}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div>
+    <div class="brand">TECH <span>OLIGARCHS</span> <em>• AI RTS</em></div>
+    <div style="font-size:11px;color:var(--muted);font-weight:700" id="clockLine">Garage Era • Day 1 • Rival: NEXA Corp</div>
+  </div>
+  <div class="res" aria-label="Resources">
+    <span class="pill"><span class="lab">👥 Pop</span> <b id="rPop">3/15</b></span>
+    <span class="pill"><span style="color:var(--data)">◆ Data</span> <b id="rData">200</b></span>
+    <span class="pill"><span style="color:var(--power)">⚡ Power</span> <b id="rPower">200</b></span>
+    <span class="pill"><span style="color:var(--capital)">$ Capital</span> <b id="rCap">150</b></span>
+    <span class="pill"><span style="color:var(--chips)">▣ Chips</span> <b id="rChips">50</b></span>
+    <span class="pill agepill">Age: <b id="rAge">Garage</b></span>
+    <span class="pill" id="xpPill">⭐ XP <b id="rXp">0</b> • 📦 Shipments <b id="rShip">0</b></span>
+  </div>
+  <div style="display:flex;gap:6px">
+    <button id="btnPause">⏸ Pause</button><button id="btnSpeed">Speed 1×</button><button id="btnHow">How to Play</button><button id="btnRestart">Restart</button>
+  </div>
+</div>
+
+<div class="layout">
+  <section class="stage">
+    <canvas id="game" width="1200" height="800"></canvas>
+    <div class="belowmap">
+      <button id="selFounder">🦸 Founder</button><button id="selEng">Select Engineers</button><button id="selArmy">Select Army</button><button id="selHQ">Founder HQ</button><button id="btnRally">⚑ Attack Rival HQ</button>
+      <span class="hint" id="hint">Tap an Engineer, then tap a resource node to gather. Tap a building in the panel, then tap the map to place it. Select bots, then tap an enemy to attack.</span>
+    </div>
+    <div class="card" style="border-radius:0;border-left:0;border-right:0;border-bottom:0">
+      <h3 style="margin-top:0">Race to Monopoly</h3>
+      <div class="ages" id="ageTrack"></div>
+      <p style="font-size:12px;color:var(--muted)" id="raceLine">First founder to reach <b style="color:var(--gold)">MONOPOLY</b> wins instantly. Or destroy the rival HQ for a Domination win. If NEXA reaches Monopoly first, you lose.</p>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <h2 id="selTitle">Founder HQ</h2>
+      <div class="hpbar"><i id="selHp" style="width:100%"></i></div>
+      <p id="selInfo">Your HQ trains Engineers and researches new Ages. Keep it alive.</p>
+      <p class="queue" id="selQueue"></p>
+      <div id="actions" class="grid2"></div>
+    </div>
+
+    <div class="card" id="shipCard">
+      <h3>📦 Investor Shipments • Home City Deck</h3>
+      <p style="font-size:12px;color:var(--muted)">Earn XP by gathering, building, training and winning fights. Each level sends a shipment from your investors: pick one card when it lands at your HQ.</p>
+      <div class="hpbar" style="margin:6px 0"><i id="xpBar" style="width:0%;background:#f59e0b"></i></div>
+      <p class="queue" id="shipStatus">No shipment ready yet.</p>
+      <div id="shipDeck" class="grid2"></div>
+    </div>
+
+    <div class="card">
+      <h3>Build • select Engineer or Founder for placement</h3>
+      <div id="buildMenu" class="grid2"></div>
+      <p style="font-size:12px;color:var(--muted)">Placement: pick a building, then tap a clear spot on the map. The selected Engineer walks over and builds it. Power Plants and Data Centers pay you back over time.</p>
+    </div>
+
+    <div class="card">
+      <h3>Empire</h3>
+      <div class="legend" id="empireStats"></div>
+      <p id="objective" style="font-size:13px"></p>
+    </div>
+
+    <div class="card">
+      <h3>Chronicle</h3>
+      <div class="log" id="log"></div>
+    </div>
+  </aside>
+</div>
+
+<div class="overlay" id="startOverlay">
+  <div class="sheet">
+    <h1>TECH <span>OLIGARCHS</span><br><em>Build the empire. Become the monopoly.</em></h1>
+    <p class="sub">Age of Empires III, reskinned for the AI race. Your <b>Founder</b> is your Explorer hero: scouts, fights, gathers and builds, and revives at HQ. Engineers gather <b>Data, Power, Capital and Chips</b>. Earn XP to call <b>Investor Shipments</b> from your Home City, capture <b>Fiber Nodes</b> on the central data pipeline for trickle income, and late-game <b>Gigafactories</b> auto-produce for you. Out-age or out-gun the rival founder at <b>NEXA Corp</b>.</p>
+    <div class="cols">
+      <div><h3>How you win</h3><ul><li><b>Monopoly:</b> Age up Garage → Seed → Scale-up → IPO → Monopoly first, like AoE3's five ages.</li><li><b>Domination:</b> Destroy the NEXA Founder HQ (top right, red).</li><li><b>You lose</b> if your HQ falls, or NEXA hits Monopoly first.</li></ul></div>
+      <div><h3>First 60 seconds</h3><ul><li>Tap an Engineer → tap a blue Data node, yellow Power node, green Capital node or purple Chip node.</li><li>Train more Engineers at your HQ.</li><li>Build a Hacker House, then an AI Lab, then bots.</li><li>Select bots → tap an enemy or use Attack Rival HQ.</li><li>Send any unit to a glowing Fiber Node on the middle pipeline and hold it to capture trickle income.</li><li>Spend each Investor Shipment the moment it lands.</li></ul></div>
+    </div>
+    <h3>Difficulty</h3>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="diffRow">
+      <button data-diff="chill" class="diffBtn">🌱 Chill Rival<small>Slower raids, slower ageing</small></button>
+      <button data-diff="normal" class="diffBtn active primary">⚔️ Normal Rival<small>The intended race</small></button>
+      <button data-diff="ruthless" class="diffBtn">🔥 Ruthless Rival<small>Fast raids, fast ageing</small></button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button id="btnStart" class="primary" style="font-size:16px;padding:12px 18px">▶ Start in the Garage</button>
+      <button id="btnStartHow">Read full How to Play</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted)">Whole map on one screen, no scrolling in battle. Works with mouse or touch. No save, one sitting, about 8 to 15 minutes per match.</p>
+  </div>
+</div>
+
+<div class="overlay hidden" id="howOverlay">
+  <div class="sheet">
+    <h1 style="font-size:26px">How to Play</h1>
+    <div class="cols">
+      <div><h3>Economy</h3><ul><li><b>Data ◆</b> from user clusters: trains Engineers, feeds age-ups.</li><li><b>Power ⚡</b> from solar fields: buildings.</li><li><b>Capital $</b> from investor towers: bots, labs, age-ups.</li><li><b>Chips ▣</b> from silicon seams: turrets, fabs, AGI bots.</li><li>Engineers carry 10 per trip back to HQ.</li><li>Power Plant: +0.7 Power/s. Data Center: auto +0.7 Data/s, trains AGI. Gigafactory (IPO): auto +1.0 Chips/s and +0.6 Capital/s.</li><li><b>Fiber Nodes:</b> 3 sites on the central pipeline. Stand a unit on one for 4s to capture it: +0.5 Capital/s and +0.3 Data/s each, forever, until NEXA takes it back.</li><li><b>Investor Shipments:</b> gathering, building, training and kills earn XP. Each XP level = 1 shipment card at HQ: Capital, Data, Chips, Power, 2 Engineers, or a bot squad.</li></ul></div>
+      <div><h3>War & Ages</h3><ul><li><b>Founder (you):</b> your Explorer hero. Ranged, tough, gathers double, builds, and revives at HQ 20s after falling. Never leaves the game for good.</li><li><b>AI Agent:</b> cheap melee bot, Garage.</li><li><b>Security Bot:</b> ranged bot, Seed.</li><li><b>AGI Bot:</b> elite, Scale-up, from Data Center.</li><li><b>Firewall Turret:</b> auto-shoots enemies in range.</li><li>Age up at the HQ. Each age buffs gather speed and unlocks tech.</li><li>NEXA sends raids that grow over time. Defend your HQ.</li></ul></div>
+    </div>
+    <p>Controls: tap/click to select. With an Engineer selected, tap a node to gather. With an army selected, tap ground to move or an enemy to focus fire. Build menu places buildings. <span class="kbd">Space</span> pauses.</p>
+    <button id="btnCloseHow" class="primary">Back to game</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="endOverlay">
+  <div class="sheet" style="text-align:center">
+    <h1 id="endTitle" style="font-size:32px">MONOPOLY!</h1>
+    <p class="sub" id="endText"></p>
+    <p id="endStats" style="line-height:1.6"></p>
+    <button id="btnAgain" class="primary" style="font-size:16px;padding:12px 18px">Play Again</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const cvs=document.getElementById('game'), ctx=cvs.getContext('2d');
+const W=1200,H=800;
+const AGES=["Garage","Seed","Scale-up","IPO","Monopoly"];
+const AGE_COST=[null,{data:200,cap:100,power:0,chips:0},{data:400,cap:300,power:0,chips:100},{data:600,cap:500,power:0,chips:200},{data:500,cap:800,power:0,chips:400}];
+const DIFF={chill:{raid:65,age:150,wave:0},normal:{raid:48,age:108,wave:0},ruthless:{raid:36,age:78,wave:1}};
+let diff='normal';
+
+const BUILD={
+ house:{name:"Hacker House",icon:"⌂",cost:{power:30},hp:260,pop:6,desc:"+6 population cap",color:"#f59e0b",w:46,h:38,age:0},
+ lab:{name:"AI Lab",icon:"⚗",cost:{power:100,cap:50},hp:520,desc:"Trains AI Agents & Security Bots",color:"#06b6d4",w:64,h:50,age:0,trains:['chatbot','drone']},
+ fab:{name:"Chip Fab",icon:"▣",cost:{power:120,cap:80},hp:520,desc:"+0.45 Chips/s, cleaner bots",color:"#a855f7",w:64,h:50,age:1},
+ plant:{name:"Power Plant",icon:"⚡",cost:{chips:80,power:20},hp:420,desc:"+0.7 Power/s",color:"#eab308",w:56,h:48,age:0},
+ datacenter:{name:"Data Center",icon:"▦",cost:{cap:200,chips:150},hp:900,desc:"Auto-produces +0.7 Data/s • Trains AGI Bots",color:"#38bdf8",w:76,h:58,age:2,trains:['agi']},
+ gigafactory:{name:"Gigafactory",icon:"🏭",cost:{cap:300,chips:200,power:100},hp:1100,desc:"Auto-produces: +1.0 Chips/s, +0.6 Capital/s • Trains AGI Bots",color:"#f59e0b",w:84,h:62,age:3,trains:['agi']},
+ turret:{name:"Firewall Turret",icon:"♜",cost:{chips:70,power:30},hp:420,desc:"Auto-fire, range 120, dmg 14",color:"#fb7185",w:38,h:44,age:1,range:120,dmg:14},
+};
+const UNIT={
+ engineer:{name:"Engineer",icon:"🧑‍💻",cost:{data:50},hp:55,speed:62,dmg:3,range:14,train:7,color:"#fde68a"},
+ chatbot:{name:"AI Agent",icon:"🤖",cost:{cap:60,chips:20},hp:95,speed:70,dmg:10,range:16,train:9,color:"#67e8f9"},
+ drone:{name:"Security Bot",icon:"🛸",cost:{cap:80,power:30},hp:70,speed:82,dmg:9,range:105,train:11,color:"#93c5fd",age:1},
+ founder:{name:"Founder",icon:"🦸",cost:{},hp:460,speed:80,dmg:24,range:95,train:0,color:"#fde047"},
+ agi:{name:"AGI Bot",icon:"🦾",cost:{cap:150,chips:80,data:50},hp:210,speed:66,dmg:22,range:22,train:16,color:"#c084fc",age:2},
+};
+const RESKEY={data:'data',power:'power',cap:'cap',chips:'chips'};
+function costText(c){return Object.entries(c).filter(([,v])=>v>0).map(([k,v])=>v+" "+({data:"Data",power:"Power",cap:"Capital",chips:"Chips"})[k]).join(" • ")||"Free"}
+function canAfford(c,r){return Object.entries(c).every(([k,v])=>(r[k]||0)>=v)}
+function pay(c,r){Object.entries(c).forEach(([k,v])=>r[k]-=v)}
+
+let G=null, uid=1;
+function makeBuilding(owner,type,x,y,built=true){
+ const cfg=BUILD[type]||{hp:1000,w:84,h:64,color:"#fff",name:type};
+ const hp = type==='hq'?1600:cfg.hp;
+ return {id:uid++,kind:'building',owner,type,x,y,w:type==='hq'?88:cfg.w,h:type==='hq'?68:cfg.h,hp,maxHp:hp,built,buildProg:built?1:0,queue:[],trainT:0,cool:0,ageResearch:0};
+}
+function makeUnit(owner,type,x,y){
+ const cfg=UNIT[type]; return {id:uid++,kind:'unit',owner,type,x,y,hp:cfg.hp,maxHp:cfg.hp,tx:x,ty:y,state:'idle',target:null,node:null,carry:0,carryType:null,harvestT:0,cool:0,site:null};
+}
+function makeNode(type,x,y){return {id:uid++,kind:'node',type,x,y,amount:9999};}
+const nodeDefs=[
+ ['data',250,180],['data',210,620],['data',600,130],['data',600,670],
+ ['power',330,400],['power',870,400],['power',545,315],
+ ['cap',430,250],['cap',770,550],['cap',430,550],['cap',770,250],
+ ['chips',520,400],['chips',680,400],['chips',950,180],['chips',950,620],
+];
+function newGame(){
+ uid=1;
+ G={t:0,speed:1,paused:true,over:false,age:0,enemyAge:0,enemyAgeT:DIFF[diff].age,raidT:DIFF[diff].raid,wave:0,
+   res:{data:220,power:220,cap:180,chips:60}, enemyRes:{data:999,power:999,cap:999,chips:999},
+   units:[],buildings:[],nodes:nodeDefs.map(d=>makeNode(d[0],d[1],d[2])),shots:[],parts:[],floaters:[],
+   sel:null, selGroup:[], placing:null, log:[], xp:0, xpNext:100, shipments:0, founderReviveT:0, enemyFounderReviveT:0,
+   fibers:[{x:600,y:205,owner:null,prog:0,side:null},{x:600,y:400,owner:null,prog:0,side:null},{x:600,y:595,owner:null,prog:0,side:null}]};
+ // player
+ G.buildings.push(makeBuilding('player','hq',150,400));
+ G.buildings.push(makeBuilding('player','house',150,290));
+ for(let i=0;i<3;i++) G.units.push(makeUnit('player','engineer',205+(i%2)*26,360+i*36));
+ G.units.push(makeUnit('player','founder',235,430));
+ // enemy
+ G.buildings.push(makeBuilding('enemy','hq',1050,400));
+ G.buildings.push(makeBuilding('enemy','lab',965,290));
+ G.buildings.push(makeBuilding('enemy','house',1050,290));
+ G.buildings.push(makeBuilding('enemy','turret',960,400));
+ for(let i=0;i<2;i++) G.units.push(makeUnit('enemy','chatbot',985,470+i*34));
+ G.units.push(makeUnit('enemy','founder',975,430));
+ selectEntity(G.buildings[0]);
+ logMsg("You incorporated in a garage. NEXA Corp incorporated across the valley on the same day. Of course it did.");
+ logMsg("Send Engineers to nodes. First goal: a second Hacker House and an AI Lab.");
+ logMsg("🦸 Your Founder is on the field (gold ring hero by your HQ). They gather double, fight at range, build, and revive at HQ if they fall.");
+ logMsg("📦 Earn XP to trigger Investor Shipments, and grab the Fiber Nodes on the middle pipeline.");
+ renderShipments();
+ updateHUD();
+}
+function popUsed(owner){return G.units.filter(u=>u.owner===owner&&u.type!=='founder').length}
+function popCap(owner){let c=10; G.buildings.filter(b=>b.owner===owner&&b.built).forEach(b=>{if(b.type==='house')c+=6; if(b.type==='hq')c+=5}); return c}
+function logMsg(s){G.log.unshift({t:G?G.t:0,s}); if(G.log.length>40)G.log.pop(); renderLog();}
+function renderLog(){document.getElementById('log').innerHTML=G.log.map(e=>`<div><span style="color:var(--muted)">${fmtTime(e.t)}</span> ${e.s}</div>`).join('')}
+function fmtTime(t){return Math.floor(t/60)+":"+String(Math.floor(t%60)).padStart(2,'0')}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function nearestHQ(owner){return G.buildings.find(b=>b.owner===owner&&b.type==='hq')}
+// ---------- selection / UI ----------
+function selectEntity(e){G.sel=e; G.selGroup=(e&&e.kind==='unit')?[e]:[]; renderPanel();}
+function selectGroup(units){G.selGroup=units; G.sel=units[0]||null; renderPanel();}
+function isSel(e){return G.sel===e||G.selGroup.includes(e)}
+function renderPanel(){
+ const title=document.getElementById('selTitle'), info=document.getElementById('selInfo'), hp=document.getElementById('selHp'), q=document.getElementById('selQueue'), act=document.getElementById('actions');
+ const e=G.sel;
+ if(!e){title.textContent="Nothing selected"; info.textContent="Tap a unit or building."; hp.style.width='0%'; q.textContent=''; act.innerHTML=''; renderBuildMenu(); return;}
+ const cfg=e.kind==='building'?(BUILD[e.type]||{name:"Founder HQ",desc:"Trains Engineers, researches Ages"}):UNIT[e.type];
+ title.textContent=(e.owner==='enemy'?"NEXA • ":"")+(e.type==='hq'?"Founder HQ":cfg.name)+(G.selGroup.length>1?`  (+${G.selGroup.length-1} more)`:"");
+ hp.style.width=Math.max(0,e.hp/e.maxHp*100)+'%'; hp.style.background=e.owner==='enemy'?'#fb7185':'#22c55e';
+ info.textContent=e.kind==='building'?(e.built?(cfg.desc||""):"Under construction, Engineer needed on site."):(e.type==='founder'?"Your Explorer hero, AoE3 style: ranged and tough, gathers DOUBLE, builds buildings, scouts. If they fall, they revive at HQ in 20s.":e.type==='engineer'?"Gathers resources, builds everything. The hoodie is load-bearing.":"Combat unit. Tap ground to move, tap an enemy to focus fire.");
+ q.textContent=e.kind==='building'&&e.queue.length?("Training: "+e.queue.map(k=>UNIT[k].name).join(", ")+(e.ageResearch?" • Age research running":"")):(e.kind==='building'&&e.ageResearch?"Researching next Age…":"");
+ act.innerHTML='';
+ if(e.kind==='building'&&e.owner==='player'&&e.built){
+   if(e.type==='hq'){
+     act.appendChild(btn(`Train Engineer<small>${costText(UNIT.engineer.cost)} • 7s</small>`,()=>train(e,'engineer'),!canAfford(UNIT.engineer.cost,G.res)||popUsed('player')>=popCap('player')));
+     if(G.age<4){const c=AGE_COST[G.age+1]; act.appendChild(btn(`⬆ Age Up: ${AGES[G.age+1]}<small>${costText(c)}</small>`,()=>startAge(e),!canAfford(c,G.res)||!!e.ageResearch));}
+     else act.appendChild(btn(`👑 MONOPOLY<small>You are the market now</small>`,()=>{},true));
+   }
+   const trains=(BUILD[e.type]&&BUILD[e.type].trains)||[];
+   trains.forEach(k=>{const u=UNIT[k]; const locked=(u.age||0)>G.age; act.appendChild(btn(`Train ${u.name}<small>${locked?"Needs "+AGES[u.age]+" Age":costText(u.cost)}</small>`,()=>train(e,k),locked||!canAfford(u.cost,G.res)||popUsed('player')>=popCap('player')));});
+ }
+ if(e.kind==='unit'&&e.owner==='player'&&e.type!=='engineer'&&e.type!=='founder'){act.appendChild(btn("Hold Position",()=>{G.selGroup.forEach(u=>{u.state='idle';u.target=null;u.tx=u.x;u.ty=u.y})},false)); act.appendChild(btn("⚑ Attack Rival HQ",()=>attackHQ(),false));}
+ renderBuildMenu(); renderAgeTrack(); renderShipments();
+}
+function btn(html,fn,disabled){const b=document.createElement('button'); b.innerHTML=html; b.disabled=!!disabled; b.onclick=fn; return b;}
+function renderBuildMenu(){
+ const m=document.getElementById('buildMenu'); m.innerHTML='';
+ Object.entries(BUILD).forEach(([k,cfg])=>{
+   const locked=(cfg.age||0)>G.age;
+   const b=btn(`${cfg.icon} ${cfg.name}<small>${locked?"Needs "+AGES[cfg.age]+" Age":costText(cfg.cost)}</small>`,()=>{if(!canAfford(cfg.cost,G.res))return; G.placing=k; document.getElementById('hint').textContent="Placing "+cfg.name+": tap a clear spot on the map. Tap again here to cancel."; renderBuildMenu();},locked||!canAfford(cfg.cost,G.res));
+   if(G.placing===k)b.classList.add('active'); m.appendChild(b);
+ });
+}
+function renderAgeTrack(){
+ const el=document.getElementById('ageTrack'); el.innerHTML='';
+ AGES.forEach((a,i)=>{el.innerHTML+=`<span class="agechip ${i<=G.age?'on':''}">You: ${a}</span>`;});
+ AGES.forEach((a,i)=>{el.innerHTML+=`<span class="agechip ${i<=G.enemyAge?'enemyOn':''}">NEXA: ${a}</span>`;});
+ document.getElementById('empireStats').innerHTML=
+  `<span class="pill">🛜 Fiber ${G.fibers.filter(f=>f.owner==='player').length}/3</span><span class="pill">🏠 Buildings ${G.buildings.filter(b=>b.owner==='player'&&b.built).length}</span><span class="pill">🤖 Army ${G.units.filter(u=>u.owner==='player'&&u.type!=='engineer').length}</span><span class="pill">🧑‍💻 Engineers ${G.units.filter(u=>u.owner==='player'&&u.type==='engineer').length}</span><span class="pill">🌊 Next raid ~${Math.max(0,Math.ceil(G.raidT))}s</span>`;
+ document.getElementById('objective').innerHTML= G.age<4?`Next age, <b>${AGES[G.age+1]}</b>, costs ${costText(AGE_COST[G.age+1])} at your HQ. NEXA ages up in about ${Math.max(0,Math.ceil(G.enemyAgeT))}s.`:`You hit Monopoly.`;
+}
+const SHIP_CARDS=[
+ {name:"Series A Wire",icon:"💸",desc:"+300 Capital",apply:()=>{G.res.cap+=300}},
+ {name:"Data Grant",icon:"◆",desc:"+300 Data",apply:()=>{G.res.data+=300}},
+ {name:"Chip Drop",icon:"▣",desc:"+200 Chips",apply:()=>{G.res.chips+=200}},
+ {name:"Grid Surge",icon:"⚡",desc:"+250 Power",apply:()=>{G.res.power+=250}},
+ {name:"2 Engineers",icon:"🧑‍💻",desc:"Arrive at HQ now",apply:()=>{const hq=nearestHQ('player'); for(let i=0;i<2;i++)G.units.push(makeUnit('player','engineer',hq.x+55,hq.y-20+i*32));}},
+ {name:"Agent Squad",icon:"🤖",desc:"3 AI Agents at HQ (Security Bots in Seed+)",apply:()=>{const hq=nearestHQ('player'); const k=G.age>=1?'drone':'chatbot'; for(let i=0;i<3;i++)G.units.push(makeUnit('player',k,hq.x+55,hq.y+30+i*26));}},
+];
+function gainXP(n){ if(!G||G.over)return; G.xp+=n; while(G.xp>=G.xpNext){G.xp-=G.xpNext; G.xpNext=Math.floor(G.xpNext*1.45); G.shipments++; logMsg("📦 Investor Shipment ready at HQ! Pick a card in the Shipments panel."); } renderShipments(); }
+let _shipSig='';
+function renderShipments(){
+ const st=document.getElementById('shipStatus'), deck=document.getElementById('shipDeck'), bar=document.getElementById('xpBar');
+ if(!st||!G)return;
+ const sig=G.shipments+'|'+Math.floor(G.xp)+'|'+G.xpNext; if(sig===_shipSig)return; _shipSig=sig;
+ bar.style.width=Math.min(100,G.xp/G.xpNext*100)+'%';
+ st.textContent=G.shipments>0?("🚚 "+G.shipments+" shipment(s) waiting: pick one card below for each."):"Next shipment at "+Math.ceil(G.xpNext-G.xp)+" XP.";
+ deck.innerHTML='';
+ SHIP_CARDS.forEach(c=>{const b=btn(c.icon+" "+c.name+"<small>"+c.desc+"</small>",()=>{if(G.shipments<=0)return; G.shipments--; c.apply(); logMsg("📦 Shipment delivered: "+c.name+" ("+c.desc+")."); updateHUD(); renderShipments(); renderPanel();},G.shipments<=0); if(G.shipments>0)b.classList.add('gold'); deck.appendChild(b);});
+ const rx=document.getElementById('rXp'); if(rx)rx.textContent=Math.floor(G.xp)+"/"+G.xpNext;
+ const rs=document.getElementById('rShip'); if(rs)rs.textContent=G.shipments;
+}
+function train(b,k){const u=UNIT[k]; if(!canAfford(u.cost,G.res)||popUsed('player')+b.queue.length>=popCap('player'))return; pay(u.cost,G.res); b.queue.push(k); if(b.queue.length===1)b.trainT=u.train; logMsg(b.type==='hq'?"HQ is onboarding a "+u.name+".":(BUILD[b.type].name+" is training a "+u.name+".")); updateHUD(); renderPanel();}
+function startAge(b){const c=AGE_COST[G.age+1]; if(!canAfford(c,G.res))return; pay(c,G.res); b.ageResearch=18; logMsg("Researching the "+AGES[G.age+1]+" era. Pitch deck updated."); updateHUD(); renderPanel();}
+function attackHQ(){const hq=nearestHQ('enemy'); if(!hq)return; const army=G.units.filter(u=>u.owner==='player'&&u.type!=='engineer'); if(!army.length){logMsg("No army yet. Build an AI Lab and train bots first.");return;} army.forEach(u=>{u.target=hq;u.state='attack';u.tx=hq.x;u.ty=hq.y}); selectGroup(army); logMsg("Army ordered to take down the NEXA HQ.");}
+function updateHUD(){
+ if(!G)return;
+ document.getElementById('rData').textContent=Math.floor(G.res.data); document.getElementById('rPower').textContent=Math.floor(G.res.power);
+ document.getElementById('rCap').textContent=Math.floor(G.res.cap); document.getElementById('rChips').textContent=Math.floor(G.res.chips);
+ document.getElementById('rPop').textContent=popUsed('player')+"/"+popCap('player'); document.getElementById('rAge').textContent=AGES[G.age];
+ document.getElementById('clockLine').textContent=AGES[G.age]+" Era • "+fmtTime(G.t)+" • Rival NEXA is in "+AGES[G.enemyAge]+" • Wave "+G.wave;
+ renderAgeTrack();
+}
+// ---------- input ----------
+function canvasPos(ev){const r=cvs.getBoundingClientRect(); const cx=(ev.touches?ev.touches[0].clientX:ev.clientX), cy=(ev.touches?ev.touches[0].clientY:ev.clientY); return {x:(cx-r.left)/r.width*W, y:(cy-r.top)/r.height*H};}
+cvs.addEventListener('click',ev=>{
+ if(!G||G.paused||G.over)return; const p=canvasPos(ev);
+ // placing
+ if(G.placing){
+   const cfg=BUILD[G.placing];
+   if(p.x<40||p.x>W-40||p.y<40||p.y>H-40){return;}
+   if(G.buildings.some(b=>Math.abs(b.x-p.x)<(b.w+cfg.w)/2+8&&Math.abs(b.y-p.y)<(b.h+cfg.h)/2+8)){logMsg("Too crowded there. Pick a clearer spot.");return;}
+   if(!canAfford(cfg.cost,G.res)){G.placing=null;renderBuildMenu();return;}
+   pay(cfg.cost,G.res);
+   const b=makeBuilding('player',G.placing,p.x,p.y,false); G.buildings.push(b);
+   const eng=(G.sel&&(G.sel.type==='engineer'||G.sel.type==='founder')&&G.sel.owner==='player')?G.sel:(G.units.find(u=>u.owner==='player'&&u.type==='founder'&&!u.site)||G.units.find(u=>u.owner==='player'&&u.type==='engineer'));
+   if(eng){eng.site=b; eng.state='build'; eng.tx=b.x; eng.ty=b.y+34;}
+   logMsg("Breaking ground on a "+cfg.name+"."); G.placing=null; selectEntity(b); updateHUD(); return;
+ }
+ // find clicked entity: units first, then buildings, then nodes
+ const u=[...G.units].reverse().find(x=>Math.hypot(x.x-p.x,x.y-p.y)<20);
+ const b=[...G.buildings].reverse().find(x=>Math.abs(x.x-p.x)<x.w/2+6&&Math.abs(x.y-p.y)<x.h/2+6);
+ const n=[...G.nodes].reverse().find(x=>Math.hypot(x.x-p.x,x.y-p.y)<34);
+ const myArmy=G.selGroup.filter(x=>x.kind==='unit'&&x.owner==='player');
+ const selEng=G.sel&&G.sel.kind==='unit'&&G.sel.owner==='player'&&(G.sel.type==='engineer'||G.sel.type==='founder');
+ const fib=G.fibers.find(f=>Math.hypot(f.x-p.x,f.y-p.y)<38);
+ // orders
+ if((u&&u.owner==='enemy')||(b&&b.owner==='enemy')){
+   if(myArmy.length&&myArmy.some(x=>x.type!=='engineer')){const t=u||b; myArmy.forEach(x=>{if(x.type!=='engineer'){x.target=t;x.state='attack';x.tx=t.x;x.ty=t.y;}}); logMsg("Army focusing fire."); return;}
+   selectEntity(u||b); return;
+ }
+ if(fib&&myArmy.length){myArmy.forEach((x,i)=>{x.tx=fib.x+(i%3-1)*24; x.ty=fib.y+(Math.floor(i/3))*24; x.state='move'; x.target=null;}); document.getElementById('hint').textContent='Holding a Fiber Node for 4 seconds captures it: +0.5 Capital/s and +0.3 Data/s while you own it.'; return;}
+ if(n&&selEng){G.sel.node=n; G.sel.state='toNode'; G.sel.tx=n.x; G.sel.ty=n.y; document.getElementById('hint').textContent="Engineer sent to harvest "+n.type+". They auto-return to HQ with 10 each trip."; return;}
+ if(u&&u.owner==='player'){selectEntity(u); return;}
+ if(b&&b.owner==='player'){selectEntity(b); return;}
+ if(fib){document.getElementById('hint').textContent="Fiber Node on the data pipeline. Select any unit, then tap here to send them to capture it."; return;}
+ if(n){document.getElementById('hint').textContent=n.type.toUpperCase()+" node. Select an Engineer or your Founder first, then tap this node."; return;}
+ // move selected group
+ if(myArmy.length){myArmy.forEach((x,i)=>{x.tx=p.x+(i%3-1)*22; x.ty=p.y+(Math.floor(i/3)-1)*22; x.state='move'; x.target=null;});}
+});
+// ---------- simulation ----------
+function moveToward(u,dt){const dx=u.tx-u.x, dy=u.ty-u.y, d=Math.hypot(dx,dy); const sp=UNIT[u.type].speed*(u.owner==='player'&&u.type==='engineer'?1+G.age*0.08:1); if(d<4)return true; u.x+=dx/d*sp*dt; u.y+=dy/d*sp*dt; return d<10;}
+function damage(target,amt,attacker){
+ if(target.hp<=0)return; target.hp-=amt;
+ if(target.kind==='building'&&target.owner==='player'&&target.type==='hq'){}
+ if(target.hp<=0){kill(target);}
+}
+function kill(e){
+ G.parts.push({x:e.x,y:e.y,t:0.7,color:e.owner==='enemy'?'#fb7185':'#22d3ee'});
+ if(e.kind==='unit'){G.units=G.units.filter(x=>x!==e);
+   if(e.type==='founder'){ if(e.owner==='player'){G.founderReviveT=20; logMsg("🦸 Your Founder is down! Patching them up at HQ, back in 20s.");} else {G.enemyFounderReviveT=25; logMsg("🎉 The NEXA Founder is down! They will reboot at their HQ in 25s.");} gainXP(20); }
+   else {logMsg((e.owner==='enemy'?"NEXA ":"Your ")+(UNIT[e.type].name)+" went down."); if(e.owner==='enemy')gainXP(12);} }
+ else {G.buildings=G.buildings.filter(x=>x!==e); if(e.owner==='enemy')gainXP(30); logMsg((e.owner==='enemy'?"NEXA ":"Your ")+(e.type==='hq'?"Founder HQ":(BUILD[e.type]?BUILD[e.type].name:e.type))+" was destroyed!");
+   if(e.type==='hq'){endGame(e.owner==='enemy', e.owner==='enemy'?"Domination! You flattened the NEXA HQ. The valley has one oligarch now.":"Your HQ fell. NEXA acquires your users, your chips, and your office plants."); return;}
+ }
+ if(G.sel===e){G.sel=null;G.selGroup=[];renderPanel();}
+}
+function endGame(win,text){if(G.over)return; G.over=true; G.paused=true; document.getElementById('endTitle').textContent=win?(text.startsWith("Domination")?"🏆 DOMINATION!":"👑 MONOPOLY!"):"💀 ACQUI-HIRED (YOU LOSE)"; if(win&&G.age>=4)document.getElementById('endTitle').textContent="👑 MONOPOLY!"; document.getElementById('endText').textContent=text; document.getElementById('endStats').innerHTML=`Time ${fmtTime(G.t)} • Your age: ${AGES[G.age]} • NEXA age: ${AGES[G.enemyAge]}<br>Army built, buildings standing: ${G.buildings.filter(b=>b.owner==='player').length} • Waves survived: ${G.wave}`; document.getElementById('endOverlay').classList.remove('hidden');}
+function spawnShot(from,to,dmg){G.shots.push({x:from.x,y:from.y-10,tx:to.x,ty:to.y-8,target:to,dmg,t:0});}
+function update(dt){
+ if(G.paused||G.over)return; G.t+=dt;
+ // passive buildings
+ G.buildings.filter(b=>b.owner==='player'&&b.built).forEach(b=>{ if(b.type==='plant')G.res.power+=0.7*dt; if(b.type==='fab')G.res.chips+=0.45*dt; if(b.type==='datacenter')G.res.data+=0.7*dt; if(b.type==='gigafactory'){G.res.chips+=1.0*dt; G.res.cap+=0.6*dt;} });
+ // fiber trickle + capture
+ G.fibers.forEach(f=>{ if(f.owner==='player'){G.res.cap+=0.5*dt; G.res.data+=0.3*dt;}
+   const pu=G.units.filter(u=>u.owner==='player'&&Math.hypot(u.x-f.x,u.y-f.y)<58), eu=G.units.filter(u=>u.owner==='enemy'&&Math.hypot(u.x-f.x,u.y-f.y)<58);
+   let side=pu.length&&!eu.length?'player':(eu.length&&!pu.length?'enemy':null);
+   if(side&&f.owner!==side){ if(f.side!==side){f.side=side;f.prog=0;} f.prog+=dt; if(f.prog>=4){f.owner=side;f.prog=0; logMsg(side==='player'?'🛜 Fiber Node captured! Pipeline trickle is yours: +0.5 Capital/s, +0.3 Data/s.':'⚠ NEXA captured a Fiber Node on the pipeline.'); if(side==='player')gainXP(25);} } else if(!side){f.prog=Math.max(0,f.prog-dt);} });
+ // founder revives
+ if(G.founderReviveT>0){G.founderReviveT-=dt; if(G.founderReviveT<=0){const hq=nearestHQ('player'); const f=makeUnit('player','founder',hq.x+55,hq.y+40); f.hp=Math.floor(f.maxHp/2); G.units.push(f); logMsg('🦸 Your Founder is back on their feet at HQ (half health, full ego).');}}
+ if(G.enemyFounderReviveT>0){G.enemyFounderReviveT-=dt; if(G.enemyFounderReviveT<=0){const hq=nearestHQ('enemy'); if(hq){const f=makeUnit('enemy','founder',hq.x-55,hq.y+40); G.units.push(f);}}}
+ // enemy age race
+ if(G.enemyAge<4){G.enemyAgeT-=dt; if(G.enemyAgeT<=0){G.enemyAge++; logMsg("⚠ NEXA just entered the "+AGES[G.enemyAge]+" era."); if(G.enemyAge>=4){endGame(false,"NEXA hit Monopoly first. Regulators shrug. Congress holds a hearing. Nothing happens, except you lose."); return;} G.enemyAgeT=DIFF[diff].age; updateHUD();}}
+ // raids
+ G.raidT-=dt; if(G.raidT<=0){G.wave++; G.raidT=DIFF[diff].raid; const n=1+DIFF[diff].wave+Math.floor(G.wave*0.9)+(G.enemyAge>=2?1:0)+(G.enemyAge>=3?1:0);
+   for(let i=0;i<n;i++){const type=(G.enemyAge>=3&&i===0)?'agi':((G.enemyAge>=1&&i%3===0)?'drone':'chatbot'); const u=makeUnit('enemy',type,1010,520+ (i%4)*26); const hq=nearestHQ('player'); u.target=hq; u.state='attack'; u.tx=hq.x; u.ty=hq.y; G.units.push(u);}
+   logMsg("🌊 NEXA raid wave "+G.wave+" incoming ("+n+" bots)."); }
+ // training + age research + turrets
+ G.buildings.forEach(b=>{
+   if(b.ageResearch){b.ageResearch-=dt; if(b.ageResearch<=0){b.ageResearch=0; if(b.owner==='player'){G.age++; logMsg("🎉 You entered the "+AGES[G.age]+" era! New tech unlocked, engineers gather faster."); if(G.age>=4){endGame(true,"You reached MONOPOLY first. Every phone, every model, every data center, it all routes through you now."); return;} updateHUD();} } }
+   if(b.queue.length&&b.built){b.trainT-=dt; if(b.trainT<=0){const k=b.queue.shift(); const u=makeUnit(b.owner,k,b.x+30,b.y+b.h/2+18); G.units.push(u); if(b.owner==='player')gainXP(10); if(b.queue.length)b.trainT=UNIT[b.queue[0]].train; if(b.owner==='player'&&G.sel===b)renderPanel();}}
+   if(b.type==='turret'&&b.built){b.cool-=dt; const foes=G.units.filter(u=>u.owner!==b.owner&&Math.hypot(u.x-b.x,u.y-b.y)<(BUILD.turret.range)); if(foes.length&&b.cool<=0){spawnShot(b,foes[0],BUILD.turret.dmg); b.cool=0.7;}}
+ });
+ // units
+ [...G.units].forEach(u=>{
+   const cfg=UNIT[u.type]; u.cool-=dt;
+   // enemy default: if idle, march on player HQ
+   if(u.owner==='enemy'&&u.state==='idle'&&u.type==='founder'){const home=nearestHQ('enemy'); if(home&&Math.hypot(u.x-home.x,u.y-home.y)>130){u.tx=home.x-55;u.ty=home.y+40;u.state='move';}}
+   else if(u.owner==='enemy'&&u.state==='idle'){const hq=nearestHQ('player'); if(hq){u.target=hq;u.state='attack';}}
+   // founder worker orders take priority
+   if(u.type==='founder'&&['toNode','harvest','return','build'].includes(u.state)){ /* fall through to worker logic below */ }
+   else if(u.type!=='engineer'){
+     const foes=[...G.units.filter(x=>x.owner!==u.owner),...G.buildings.filter(x=>x.owner!==u.owner&&x.built!==false)];
+     let near=foes.filter(f=>Math.hypot(f.x-u.x,f.y-u.y)<(u.state==='attack'?999:110)).sort((a,b)=>Math.hypot(a.x-u.x,a.y-u.y)-Math.hypot(b.x-u.x,b.y-u.y))[0];
+     if(u.state!=='move'||near&&Math.hypot(near.x-u.x,near.y-u.y)<110){ if(near&&(u.state==='attack'||Math.hypot(near.x-u.x,near.y-u.y)<110)) u.target=near; }
+     if(u.target&&(u.target.hp===undefined||u.target.hp>0)){
+       const d=Math.hypot(u.target.x-u.x,u.target.y-u.y);
+       if(d>cfg.range){u.tx=u.target.x;u.ty=u.target.y; moveToward(u,dt);}
+       else if(u.cool<=0){ if(cfg.range>40)spawnShot(u,u.target,cfg.dmg); else damage(u.target,cfg.dmg,u); u.cool=0.85; }
+     } else if(u.state==='move'){ if(moveToward(u,dt))u.state='idle'; }
+     else if(u.state==='attack'&&!u.target){u.state='idle';}
+     return;
+   }
+   // engineer + founder worker logic
+   if(u.type==='founder'&&!['toNode','harvest','return','build','move'].includes(u.state)){
+     const foes=[...G.units.filter(x=>x.owner!==u.owner),...G.buildings.filter(x=>x.owner!==u.owner)];
+     let near=foes.filter(f=>Math.hypot(f.x-u.x,f.y-u.y)<115).sort((a,b)=>Math.hypot(a.x-u.x,a.y-u.y)-Math.hypot(b.x-u.x,b.y-u.y))[0];
+     if((u.target&&u.target.hp>0)){const d=Math.hypot(u.target.x-u.x,u.target.y-u.y); if(d>cfg.range){u.tx=u.target.x;u.ty=u.target.y;moveToward(u,dt);} else if(u.cool<=0){spawnShot(u,u.target,cfg.dmg);u.cool=0.8;}}
+     else if(near){u.target=near;}
+     else if(u.state==='move'){if(moveToward(u,dt))u.state='idle';}
+     return;
+   }
+   if(u.state==='toNode'&&u.node){ if(moveToward(u,dt)){u.state='harvest'; u.harvestT=1.1;} }
+   else if(u.state==='harvest'){u.harvestT-=dt; if(u.harvestT<=0){u.carry=u.type==='founder'?20:10;u.carryType=u.node.type;u.state='return'; const hq=nearestHQ(u.owner); u.tx=hq.x+44;u.ty=hq.y;}}
+   else if(u.state==='return'){ if(moveToward(u,dt)){ if(u.owner==='player'){G.res[{data:'data',power:'power',cap:'cap',chips:'chips'}[u.carryType]]+=u.carry*(1+G.age*0.15); gainXP(4);} u.carry=0; if(u.node){u.state='toNode';u.tx=u.node.x;u.ty=u.node.y;} else u.state='idle'; }}
+   else if(u.state==='build'&&u.site){ u.tx=u.site.x; u.ty=u.site.y+u.site.h/2+16; if(moveToward(u,dt)){ u.site.buildProg+=dt/4; u.site.hp=Math.min(u.site.maxHp, u.site.maxHp*u.site.buildProg); if(u.site.buildProg>=1){u.site.built=true;u.site.hp=u.site.maxHp; logMsg((BUILD[u.site.type].name)+" online."); if(u.owner==='player')gainXP(25); const s=u.site; u.site=null; u.state='idle'; if(G.sel===s)renderPanel(); updateHUD();} } }
+   else if(u.state==='move'){if(moveToward(u,dt))u.state='idle';}
+ });
+ // shots
+ G.shots=G.shots.filter(s=>{const dx=s.tx-s.x,dy=s.ty-s.y,d=Math.hypot(dx,dy); if(d<10){ if(s.target&&s.target.hp>0)damage(s.target,s.dmg,null); return false;} s.x+=dx/d*340*dt; s.y+=dy/d*340*dt; return true;});
+ G.parts=G.parts.filter(p=>(p.t-=dt)>0);
+ // separation (light)
+ for(let i=0;i<G.units.length;i++)for(let j=i+1;j<G.units.length;j++){const a=G.units[i],b=G.units[j],d=Math.hypot(a.x-b.x,a.y-b.y); if(d>0&&d<18){a.x+=(a.x-b.x)/d*0.6;a.y+=(a.y-b.y)/d*0.6;}}
+ updateHUDThrottled();
+}
+let hudT=0; function updateHUDThrottled(){hudT-=1; if(hudT<=0){hudT=12; updateHUD(); if(G.sel) {document.getElementById('selHp').style.width=Math.max(0,G.sel.hp/G.sel.maxHp*100)+'%';}}}
+// ---------- drawing ----------
+function rr(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+function drawBuilding(b){
+ const cfg=b.type==='hq'?{color:b.owner==='player'?'#0ea5e9':'#e11d48',name:'HQ'}:(BUILD[b.type]||{color:'#fff'});
+ ctx.save(); ctx.translate(b.x,b.y);
+ if(!b.built)ctx.globalAlpha=0.55;
+ // shadow + body
+ ctx.fillStyle='rgba(0,0,0,.35)'; rr(-b.w/2+3,-b.h/2+5,b.w,b.h,8); ctx.fill();
+ ctx.fillStyle=b.owner==='player'?'#16283f':'#3a1622'; rr(-b.w/2,-b.h/2,b.w,b.h,8); ctx.fill();
+ ctx.strokeStyle=isSel(b)?'#fff':cfg.color; ctx.lineWidth=isSel(b)?3:2; rr(-b.w/2,-b.h/2,b.w,b.h,8); ctx.stroke();
+ ctx.fillStyle=cfg.color; rr(-b.w/2,-b.h/2,b.w,12,6); ctx.fill();
+ ctx.font='20px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+ ctx.fillText(b.type==='hq'?'🏢':(BUILD[b.type]?BUILD[b.type].icon:'▦'),0,4);
+ // blinking lights for datacenter/hq
+ if(b.type==='datacenter'||b.type==='hq'){ctx.fillStyle=(Math.floor(G.t*2)%2)?'#4ade80':'#facc15'; ctx.beginPath();ctx.arc(-b.w/2+10,b.h/2-9,3,0,7);ctx.arc(b.w/2-10,b.h/2-9,3,0,7);ctx.fill();}
+ if(!b.built){ctx.fillStyle='#facc15'; ctx.font='bold 11px system-ui'; ctx.fillText(Math.floor(b.buildProg*100)+'%',0,b.h/2+11);}
+ // hp
+ ctx.fillStyle='#020617'; ctx.fillRect(-b.w/2,-b.h/2-12,b.w,5); ctx.fillStyle=b.owner==='enemy'?'#fb7185':'#22c55e'; ctx.fillRect(-b.w/2,-b.h/2-12,b.w*Math.max(0,b.hp/b.maxHp),5);
+ ctx.restore();
+ // turret range on select
+ if(isSel(b)&&b.type==='turret'){ctx.strokeStyle='rgba(251,113,133,.5)';ctx.beginPath();ctx.arc(b.x,b.y,BUILD.turret.range,0,7);ctx.stroke();}
+}
+function drawNode(n){
+ ctx.save();ctx.translate(n.x,n.y);
+ const styles={data:['#0c4a6e','#38bdf8','◆ DATA'],power:['#713f12','#facc15','⚡ POWER'],cap:['#14532d','#4ade80','$ CAPITAL'],chips:['#581c87','#c084fc','▣ CHIPS']};
+ const s=styles[n.type];
+ ctx.fillStyle=s[0]; ctx.beginPath();ctx.ellipse(0,6,34,16,0,0,7);ctx.fill();
+ ctx.fillStyle=s[1];
+ if(n.type==='data'){for(let i=-1;i<2;i++){rr(i*16-7,-14,14,20,3);ctx.fill();}}
+ else if(n.type==='power'){ctx.save();ctx.rotate(-0.3);rr(-22,-10,44,18,3);ctx.fill();ctx.restore(); ctx.fillStyle='#fef08a';ctx.font='16px serif';ctx.textAlign='center';ctx.fillText('⚡',0,2);}
+ else if(n.type==='cap'){ctx.font='22px serif';ctx.textAlign='center';ctx.fillText('🏦',0,4);}
+ else {ctx.beginPath();ctx.moveTo(0,-18);ctx.lineTo(13,2);ctx.lineTo(0,16);ctx.lineTo(-13,2);ctx.closePath();ctx.fill();}
+ ctx.font='bold 10px system-ui';ctx.fillStyle='#e2e8f0';ctx.textAlign='center';ctx.fillText(s[2],0,30);
+ ctx.restore();
+}
+function drawUnit(u){
+ ctx.save();ctx.translate(u.x,u.y);
+ ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(0,8,11,5,0,0,7);ctx.fill();
+ if(isSel(u)){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,17,0,7);ctx.stroke();}
+ ctx.fillStyle=UNIT[u.type].color; ctx.beginPath();ctx.arc(0,0,(u.type==='agi'||u.type==='founder')?13:11,0,7);ctx.fill();
+ ctx.strokeStyle=u.owner==='enemy'?'#fb7185':'#0ea5e9';ctx.lineWidth=3;ctx.stroke();
+ if(u.type==='founder'){ctx.strokeStyle='#facc15';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,16+Math.sin(G.t*4)*1.5,0,7);ctx.stroke();}
+ ctx.font=(u.type==='agi'||u.type==='founder'?'17px':'14px')+' serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(UNIT[u.type].icon,0,1);
+ if(u.carry){ctx.fillStyle='#fff';ctx.font='bold 10px system-ui';ctx.fillText('+'+Math.floor(u.carry),0,-20);}
+ ctx.fillStyle='#020617';ctx.fillRect(-12,-20,24,4);ctx.fillStyle=u.owner==='enemy'?'#fb7185':'#22c55e';ctx.fillRect(-12,-20,24*Math.max(0,u.hp/u.maxHp),4);
+ ctx.restore();
+}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ // ground: valley campus / circuit lawn
+ ctx.fillStyle='#123524';ctx.fillRect(0,0,W,H);
+ for(let i=0;i<90;i++){const x=(i*137)%W,y=(i*89)%H; ctx.fillStyle=i%3?'rgba(255,255,255,.025)':'rgba(250,204,21,.03)'; ctx.fillRect(x,y,26,10);}
+ ctx.strokeStyle='rgba(56,189,248,.10)';ctx.lineWidth=2; for(let x=100;x<W;x+=100){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();} for(let y=100;y<H;y+=100){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+ // river/road middle
+ ctx.fillStyle='#1f2937';ctx.fillRect(585,0,30,H); ctx.fillStyle='#facc15';for(let y=10;y<H;y+=42)ctx.fillRect(598,y,4,20);
+ ctx.font='bold 13px system-ui';ctx.textAlign='center';
+ ctx.fillStyle='#7dd3fc';ctx.fillText('YOUR CAMPUS',150,42); ctx.fillStyle='#fda4af';ctx.fillText('NEXA CAMPUS',1050,42);
+ // fiber nodes on the pipeline
+ G.fibers.forEach(f=>{ctx.save();ctx.translate(f.x,f.y); ctx.fillStyle=f.owner==='player'?'#0e7490':(f.owner==='enemy'?'#7f1d2f':'#334155'); ctx.beginPath();ctx.moveTo(0,-24);ctx.lineTo(19,0);ctx.lineTo(0,24);ctx.lineTo(-19,0);ctx.closePath();ctx.fill(); ctx.strokeStyle=f.owner==='player'?'#22d3ee':(f.owner==='enemy'?'#fb7185':'#94a3b8');ctx.lineWidth=2.5;ctx.stroke(); ctx.fillStyle='#fff';ctx.font='15px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🛜',0,1); ctx.font='bold 9px system-ui';ctx.fillText('FIBER',0,34); if(f.prog>0){ctx.strokeStyle='#facc15';ctx.beginPath();ctx.arc(0,0,29,-Math.PI/2,-Math.PI/2+ (f.prog/4)*Math.PI*2);ctx.stroke();} ctx.restore();});
+ G.nodes.forEach(drawNode);
+ [...G.buildings].sort((a,b)=>a.y-b.y).forEach(drawBuilding);
+ [...G.units].sort((a,b)=>a.y-b.y).forEach(drawUnit);
+ G.shots.forEach(s=>{ctx.fillStyle='#fde68a';ctx.beginPath();ctx.arc(s.x,s.y,3.5,0,7);ctx.fill();});
+ G.parts.forEach(p=>{ctx.globalAlpha=Math.max(0,p.t);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,18*(1-p.t)+4,0,7);ctx.fill();ctx.globalAlpha=1;});
+ if(G.placing){ctx.fillStyle='rgba(250,204,21,.9)';ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.fillText('Placing '+BUILD[G.placing].name+' — tap a clear spot',W/2,28);}
+}
+let last=0;
+function loop(ts){requestAnimationFrame(loop); const dt=Math.min(0.05,(ts-last)/1000||0.016); last=ts; if(G){for(let i=0;i<G.speed;i++)update(dt); draw();}}
+requestAnimationFrame(loop);
+// ---------- controls ----------
+document.querySelectorAll('.diffBtn').forEach(b=>b.onclick=()=>{diff=b.dataset.diff; document.querySelectorAll('.diffBtn').forEach(x=>x.classList.remove('active','primary')); b.classList.add('active','primary');});
+document.getElementById('btnStart').onclick=()=>{document.getElementById('startOverlay').classList.add('hidden'); G.paused=false; document.getElementById('btnPause').textContent='⏸ Pause';};
+document.getElementById('btnStartHow').onclick=()=>document.getElementById('howOverlay').classList.remove('hidden');
+document.getElementById('btnHow').onclick=()=>document.getElementById('howOverlay').classList.remove('hidden');
+document.getElementById('btnCloseHow').onclick=()=>document.getElementById('howOverlay').classList.add('hidden');
+document.getElementById('btnPause').onclick=(e)=>{if(!G||G.over)return; G.paused=!G.paused; e.target.textContent=G.paused?'▶ Resume':'⏸ Pause';};
+document.getElementById('btnSpeed').onclick=(e)=>{G.speed=G.speed>=3?1:G.speed+1; e.target.textContent='Speed '+G.speed+'×';};
+document.getElementById('btnRestart').onclick=()=>location.reload();
+document.getElementById('btnAgain').onclick=()=>location.reload();
+document.getElementById('selEng').onclick=()=>{const es=G.units.filter(u=>u.owner==='player'&&u.type==='engineer'); if(es.length){selectEntity(es[0]); document.getElementById('hint').textContent=es.length+" Engineers ready. One is selected: tap a resource node to send them gathering (they loop automatically).";}};
+document.getElementById('selArmy').onclick=()=>{const a=G.units.filter(u=>u.owner==='player'&&u.type!=='engineer'); if(a.length)selectGroup(a); else logMsg("No army yet.");};
+document.getElementById('selHQ').onclick=()=>selectEntity(nearestHQ('player'));
+document.getElementById('selFounder').onclick=()=>{const f=G.units.find(u=>u.owner==='player'&&u.type==='founder'); if(f){selectEntity(f); document.getElementById('hint').textContent='Founder selected: tap a resource node to gather double, tap an enemy to fight, or pick a building and tap the map to build.';} else logMsg('Your Founder is down, reviving at HQ in '+Math.ceil(G.founderReviveT)+'s.');};
+document.getElementById('btnRally').onclick=()=>attackHQ();
+window.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault(); document.getElementById('btnPause').click();}});
+newGame();
+</script>
+</body>
+</html>
